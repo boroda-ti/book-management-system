@@ -1,3 +1,3 @@
-from .singleton import Singleton
+from .singleton import SingletonMeta
 
-__all__ = ["Singleton"]
+__all__ = ["SingletonMeta"]
