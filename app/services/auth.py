@@ -3,7 +3,8 @@ from datetime import timedelta, datetime, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-from app import BaseConfig, database
+from app import BaseConfig
+from app.database import get_database
 from app.utils import SingletonMeta
 
 
@@ -21,7 +22,7 @@ class AuthService(metaclass=SingletonMeta):
 
 
     async def create_user(self, username: str, password: str) -> dict:
-        async with database.get_pool().acquire() as conn:
+        async with get_database().get_pool().acquire() as conn:
             hashed_password = self.hash_password(password)
             query = "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, is_admin"
             row = await conn.fetchrow(query, username, hashed_password)
@@ -34,7 +35,7 @@ class AuthService(metaclass=SingletonMeta):
 
 
     async def authenticate_user(self, username: str, password: str) -> Optional[dict]:
-        async with database.get_pool().acquire() as conn:
+        async with get_database().get_pool().acquire() as conn:
             query = "SELECT id, username, password, is_admin FROM users WHERE username = $1"
             row = await conn.fetchrow(query, username)
 
