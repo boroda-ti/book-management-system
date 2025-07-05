@@ -11,7 +11,7 @@ class Database(metaclass=SingletonMeta):
 
     async def connect(self):
         if not self._pool:
-            if BaseConfig.get("TESTING"):
+            if BaseConfig.get("TESTING") == 1:
                 dsn = f"postgresql://{BaseConfig.get('DB_USER_TEST')}:{BaseConfig.get('DB_PASSWORD_TEST')}@{BaseConfig.get('DB_HOST_TEST')}:{BaseConfig.get('DB_PORT_TEST')}/{BaseConfig.get('DB_NAME_TEST')}"
 
             else:
