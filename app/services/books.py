@@ -41,9 +41,11 @@ class BookService(metaclass=SingletonMeta):
             
             author_rows = await conn.fetch(
                 """
-                SELECT a.id, a.name
+                SELECT a.id, a.name, 
+                    u.id as user_id, u.username, u.is_admin
                 FROM authors a
                 JOIN book_authors ba ON a.id = ba.author_id
+                LEFT JOIN users u ON a.user_id = u.id
                 WHERE ba.book_id = $1
                 """,
                 book_id
@@ -93,10 +95,12 @@ class BookService(metaclass=SingletonMeta):
                 SELECT
                     b.id, b.title, b.genre_id, b.published_year,
                     b.created_by, b.created_at, b.updated_at,
-                    a.id AS author_id, a.name AS author_name
+                    a.id AS author_id, a.name AS author_name,
+                    u.id as user_id, u.username, u.is_admin
                 FROM books b
                 LEFT JOIN book_authors ba ON b.id = ba.book_id
                 LEFT JOIN authors a ON a.id = ba.author_id
+                LEFT JOIN users u ON a.user_id = u.id
                 {filter_sql}
                 ORDER BY {order_field} {order_dir}
                 LIMIT ${len(params)+1} OFFSET ${len(params)+2}
@@ -120,23 +124,43 @@ class BookService(metaclass=SingletonMeta):
                         "authors": []
                     }
                 if row["author_id"]:
-                    books_dict[book_id]["authors"].append({"id": row["author_id"], "name": row["author_name"]})
+                    books_dict[book_id]["authors"].append({
+                        "id": row["author_id"], 
+                        "name": row["author_name"],
+                        "user": {
+                            "id": row["user_id"],
+                            "username": row["username"],
+                            "is_admin": row["is_admin"]
+                        } if row["user_id"] else None
+                    })
 
             return list(books_dict.values()) or None
 
 
-    async def update_book(self, book_id: int, title: str, genre_id: Optional[int], published_year: int, author_ids: list) -> Optional[dict]:
+    async def update_book(self, book_id: int, title: str, genre_id: Optional[int], published_year: int, 
+                          author_ids: list[int], created_by: Optional[int] = None) -> Optional[dict]:
         async with get_database().get_pool().acquire() as conn:
             async with conn.transaction():
                 try:
-                    await conn.fetchrow(
-                        """
-                        UPDATE books SET title = $1, genre_id = $2, published_year = $3
-                        WHERE id = $4
-                        RETURNING id, title, genre_id, published_year, created_at, updated_at
-                        """,
-                        title, genre_id, published_year, book_id
-                    )
+                    if created_by:
+                        await conn.fetchrow(
+                            """
+                            UPDATE books SET title = $1, genre_id = $2, published_year = $3, created_by = $4
+                            WHERE id = $5
+                            RETURNING id, title, genre_id, published_year, created_at, updated_at
+                            """,
+                            title, genre_id, published_year, created_by, book_id
+                        )
+                        
+                    else:
+                        await conn.fetchrow(
+                            """
+                            UPDATE books SET title = $1, genre_id = $2, published_year = $3
+                            WHERE id = $4
+                            RETURNING id, title, genre_id, published_year, created_at, updated_at
+                            """,
+                            title, genre_id, published_year, book_id
+                        )
                 
                 except Exception:
                     raise ValueError("Book update failed")
@@ -192,7 +216,15 @@ class BookService(metaclass=SingletonMeta):
             "genre_id": book.get("genre_id"),
             "published_year": book["published_year"],
             "authors": [
-                {"id": author["id"], "name": author["name"]} for author in authors
+                {
+                    "id": author["id"], 
+                    "name": author["name"], 
+                    "user": {
+                        "id": author["user_id"],
+                        "username": author["username"],
+                        "is_admin": author["is_admin"]
+                    } if author["user_id"] else None
+                } for author in authors
             ],
             "created_at": book["created_at"],
             "updated_at": book["updated_at"]
