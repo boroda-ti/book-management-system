@@ -43,3 +43,15 @@ class BookListResponse(BaseModel):
 
 class BookDeleteResponse(BaseModel):
     success: bool
+
+
+class BookImportErrorResponse(BaseModel):
+    title: str
+    error: str
+
+
+class BookImportResponse(BaseModel):
+    created_books: Optional[List[BookReadResponse]] = None
+    error_books: Optional[List[BookImportErrorResponse]] = None
+    created_count: int = 0
+    error_count: int = 0

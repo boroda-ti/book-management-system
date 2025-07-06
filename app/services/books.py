@@ -1,5 +1,5 @@
-import json
-from typing import Optional
+import json, csv, io
+from typing import Optional, Iterator
 
 from app.database import get_database
 from app.utils import SingletonMeta
@@ -197,3 +197,81 @@ class BookService(metaclass=SingletonMeta):
             "created_at": book["created_at"],
             "updated_at": book["updated_at"]
         }
+    
+
+    def parse_json_file(self, content: bytes, author_id: int) -> Optional[list[dict]]:
+        data = json.loads(content.decode('utf-8'))
+
+        for book in data:
+            if not isinstance(book, dict):
+                return [{"title": None, "error": "Invalid book format in JSON file"}]
+            
+            if author_id not in book.get("author_ids", []):
+                return [{"title": book.get("title", None), "error": "Author must be one of the authors of the book"}]
+            
+        return data
+
+
+    def parse_csv_file(self, content: bytes, author_id: int) -> Optional[list[dict]]:
+        text = content.decode("utf-8").splitlines()
+        reader = csv.DictReader(text)
+        data = []
+
+        for row in reader:
+            try:
+                authors_id = json.loads(row["author_ids"])
+
+            except Exception:
+                return [{"title": row.get("title", None), "error": "Invalid author_ids format in CSV file"}]
+            
+            if author_id not in authors_id:
+                return [{"title": row.get("title", None), "error": "Author must be one of the authors of the book"}]
+            
+            if not row["title"] or not row["published_year"]:
+                return [{"title": row.get("title", None), "error": "Title and published_year are required"}]
+            
+            data.append({
+                "title": row["title"],
+                "genre_id": int(row["genre_id"]) if row["genre_id"] else None,
+                "published_year": int(row["published_year"]),
+                "author_ids": authors_id
+            })
+
+        return data
+    
+
+    def serialize_export_json(self, books: list[dict]) -> list:
+        output = []
+
+        for book in books:
+            output.append({
+                "id": book["id"],
+                "title": book["title"],
+                "genre_id": book.get("genre_id"),
+                "published_year": book["published_year"],
+                "authors": [a["name"] for a in book.get("authors", [])],
+                "created_at": book["created_at"].isoformat(),
+                "updated_at": book["updated_at"].isoformat()
+            })
+
+        return output
+
+
+    def generate_export_csv(self, books: list[dict]) -> Iterator[str]:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["id", "title", "genre_id", "published_year", "authors", "created_at", "updated_at"])
+
+        for book in books:
+            writer.writerow([
+                book["id"],
+                book["title"],
+                book.get("genre_id"),
+                book["published_year"],
+                "; ".join([a["name"] for a in book.get("authors", [])]),
+                book["created_at"].isoformat(),
+                book["updated_at"].isoformat()
+            ])
+
+        output.seek(0)
+        return iter([output.getvalue()])
