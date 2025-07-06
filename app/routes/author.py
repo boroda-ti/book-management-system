@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 
+from app.limiter import limiter
 from app.middleware import middleware_get_current_user
 from app.schemas import AuthorCreateUpdateRequest, AuthorReadResponse
 from app.services import author_service
@@ -9,7 +10,8 @@ router = APIRouter(prefix="/author", tags=["Author"])
 
 
 @router.post("/create", response_model=AuthorReadResponse)
-async def create_author(author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def create_author(request: Request, author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -28,7 +30,8 @@ async def create_author(author: AuthorCreateUpdateRequest, current_user: dict = 
 
 
 @router.get("/{author_id}", response_model=AuthorReadResponse)
-async def get_author(author_id: int, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def get_author(request: Request, author_id: int, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -40,7 +43,8 @@ async def get_author(author_id: int, current_user: dict = Depends(middleware_get
 
 
 @router.patch("/{author_id}", response_model=AuthorReadResponse)
-async def update_author(author_id: int, author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def update_author(request: Request, author_id: int, author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     

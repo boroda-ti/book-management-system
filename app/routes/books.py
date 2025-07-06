@@ -1,7 +1,8 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from app.limiter import limiter
 from app.middleware import middleware_get_current_user
 from app.schemas import BookCreateRequest, BookUpdateRequest, BookReadResponse, BookListResponse, BookDeleteResponse, BookImportResponse
 from app.services import book_service
@@ -11,7 +12,8 @@ router = APIRouter(prefix="/books", tags=["Books"])
 
 
 @router.post("/create", response_model=BookReadResponse)
-async def create_book(book: BookCreateRequest, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def create_book(request: Request, book: BookCreateRequest, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -40,7 +42,8 @@ async def create_book(book: BookCreateRequest, current_user: dict = Depends(midd
     
 
 @router.get("/{book_id}", response_model=BookReadResponse)
-async def get_book(book_id: int, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def get_book(request: Request, book_id: int, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -52,7 +55,9 @@ async def get_book(book_id: int, current_user: dict = Depends(middleware_get_cur
 
 
 @router.get("/", response_model=BookListResponse)
+@limiter.limit("5/minute")
 async def list_books(
+    request: Request, 
     page: int = 1,
     limit: int = 10,
     sort_by: str = "id",
@@ -103,7 +108,8 @@ async def list_books(
 
 
 @router.put("/{book_id}", response_model=BookReadResponse)
-async def update_book(book_id: int, book: BookUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def update_book(request: Request, book_id: int, book: BookUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -136,7 +142,8 @@ async def update_book(book_id: int, book: BookUpdateRequest, current_user: dict 
     
 
 @router.delete("/{book_id}", response_model=BookDeleteResponse)
-async def delete_book(book_id: int, current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def delete_book(request: Request, book_id: int, current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -153,7 +160,8 @@ async def delete_book(book_id: int, current_user: dict = Depends(middleware_get_
     
 
 @router.post("/import", response_model=BookImportResponse)
-async def import_books(file: UploadFile = File(...), current_user: dict = Depends(middleware_get_current_user)):
+@limiter.limit("5/minute")
+async def import_books(request: Request, file: UploadFile = File(...), current_user: dict = Depends(middleware_get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
