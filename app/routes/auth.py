@@ -41,7 +41,4 @@ async def login(request: Request, user: UserLoginRequest):
 @router.get("/me", response_model=UserReadResponse)
 @limiter.limit("5/minute")
 async def get_current_user(request: Request, current_user: UserReadResponse = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
     return current_user

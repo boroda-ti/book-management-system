@@ -14,8 +14,6 @@ router = APIRouter(prefix="/books", tags=["Books"])
 @router.post("/create", response_model=BookReadResponse)
 @limiter.limit("5/minute")
 async def create_book(request: Request, book: BookCreateRequest, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     author = await book_service.get_user_author(current_user["id"])
     if not author:
@@ -44,8 +42,6 @@ async def create_book(request: Request, book: BookCreateRequest, current_user: d
 @router.get("/{book_id}", response_model=BookReadResponse)
 @limiter.limit("5/minute")
 async def get_book(request: Request, book_id: int, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     book = await book_service.get_book(book_id)
     if not book:
@@ -70,8 +66,6 @@ async def list_books(
     export: Optional[str] = Query(None, regex="^(json|csv)$"),
     current_user: dict = Depends(middleware_get_current_user)
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     books = await book_service.list_books(
         page=page,
@@ -110,8 +104,6 @@ async def list_books(
 @router.put("/{book_id}", response_model=BookReadResponse)
 @limiter.limit("5/minute")
 async def update_book(request: Request, book_id: int, book: BookUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     is_creator = await book_service.check_book_creator(book_id, current_user["id"])
     if not is_creator:
@@ -144,8 +136,6 @@ async def update_book(request: Request, book_id: int, book: BookUpdateRequest, c
 @router.delete("/{book_id}", response_model=BookDeleteResponse)
 @limiter.limit("5/minute")
 async def delete_book(request: Request, book_id: int, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     is_creator = await book_service.check_book_creator(book_id, current_user["id"])
     if not is_creator:
@@ -162,8 +152,6 @@ async def delete_book(request: Request, book_id: int, current_user: dict = Depen
 @router.post("/import", response_model=BookImportResponse)
 @limiter.limit("5/minute")
 async def import_books(request: Request, file: UploadFile = File(...), current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     author = await book_service.get_user_author(current_user["id"])
     if not author:

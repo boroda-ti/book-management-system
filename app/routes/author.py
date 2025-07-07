@@ -12,8 +12,6 @@ router = APIRouter(prefix="/author", tags=["Author"])
 @router.post("/create", response_model=AuthorReadResponse)
 @limiter.limit("5/minute")
 async def create_author(request: Request, author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
     
     try:
         created_author = await author_service.create_author(author.name, current_user["id"])
@@ -32,8 +30,6 @@ async def create_author(request: Request, author: AuthorCreateUpdateRequest, cur
 @router.get("/{author_id}", response_model=AuthorReadResponse)
 @limiter.limit("5/minute")
 async def get_author(request: Request, author_id: int, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     author = await author_service.select_author(author_id)
     if not author:
@@ -45,8 +41,6 @@ async def get_author(request: Request, author_id: int, current_user: dict = Depe
 @router.patch("/{author_id}", response_model=AuthorReadResponse)
 @limiter.limit("5/minute")
 async def update_author(request: Request, author_id: int, author: AuthorCreateUpdateRequest, current_user: dict = Depends(middleware_get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
     
     try:
         updated_author = await author_service.update_author(author_id, author.name)
