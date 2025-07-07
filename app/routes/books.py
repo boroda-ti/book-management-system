@@ -33,7 +33,7 @@ async def create_book(request: Request, book: BookCreateRequest, current_user: d
             created_by=current_user["id"]
         )
         if not created_book:
-            raise HTTPException(status_code=400, detail="Book not found")
+            raise HTTPException(status_code=404, detail="Book not found")
 
         return created_book
 
