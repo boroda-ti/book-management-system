@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from mangum import Mangum
 
 
 from app.database import get_database
@@ -27,3 +28,6 @@ app.include_router(author.router)
 app.include_router(books.router)
 app.include_router(genre.router)
 app.include_router(admin.router)
+
+
+handler = Mangum(app)
