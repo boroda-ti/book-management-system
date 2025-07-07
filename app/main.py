@@ -6,7 +6,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.database import get_database
 from app.limiter import limiter
-from app.routes import auth, author, books, genre
+from app.routes import auth, author, books, genre, admin
 
 
 @asynccontextmanager
@@ -26,3 +26,4 @@ app.include_router(auth.router)
 app.include_router(author.router)
 app.include_router(books.router)
 app.include_router(genre.router)
+app.include_router(admin.router)

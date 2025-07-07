@@ -36,10 +36,15 @@ class AuthorService(metaclass=SingletonMeta):
             return None
         
 
-    async def update_author(self, author_id: int, name: str) -> Optional[dict]:
+    async def update_author(self, author_id: int, name: str, user_id: Optional[int] = -1) -> Optional[dict]:
         async with get_database().get_pool().acquire() as conn:
-            update_query = "UPDATE authors SET name = $1 WHERE id = $2 RETURNING id, name, user_id"
-            update_row = await conn.fetchrow(update_query, name, author_id)
+            if user_id != -1:
+                update_query = "UPDATE authors SET name = $1, user_id = $2 WHERE id = $3 RETURNING id, name, user_id"
+                update_row = await conn.fetchrow(update_query, name, user_id, author_id)
+
+            else:
+                update_query = "UPDATE authors SET name = $1 WHERE id = $2 RETURNING id, name, user_id"
+                update_row = await conn.fetchrow(update_query, name, author_id)
 
             author_id = update_row.get('id')
 
@@ -64,6 +69,17 @@ class AuthorService(metaclass=SingletonMeta):
             return None
         
     
+    async def delete_author(self, author_id: int) -> bool:
+        async with get_database().get_pool().acquire() as conn:
+            try:
+                await conn.execute("DELETE FROM authors WHERE id = $1", author_id)
+
+            except Exception:
+                raise ValueError("Author deletion failed")
+
+            return True
+        
+    
     def generate_response(self, author: dict) -> dict:
         return {
             "id": author["author_id"],
@@ -72,5 +88,5 @@ class AuthorService(metaclass=SingletonMeta):
                 "id": author["user_id"],
                 "username": author["username"],
                 "is_admin": author["is_admin"]
-            }
+            } if author["user_id"] else None
         }
